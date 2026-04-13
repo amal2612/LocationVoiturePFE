@@ -29,7 +29,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class ReservationController extends AbstractController
 {
     // --- CONSTRUCTEUR ---
-    
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private ReservationRepository $reservationRepository,
@@ -39,7 +39,7 @@ class ReservationController extends AbstractController
     // ==========================================================================
     // ENDPOINT 1 : GET /api/reservation/admin/reservations (ADMIN)
     // ==========================================================================
-    
+
     #[Route('/admin/reservations', name: 'api_admin_reservations_list', methods: ['GET'])]
     #[IsGranted('ROLE_ADMIN')]
     public function getAllReservations(): JsonResponse
@@ -147,16 +147,15 @@ class ReservationController extends AbstractController
     }
 
     // ==========================================================================
-    // ENDPOINT 5 : POST /api/reservation/ (CRÉATION - CŒUR DU SYSTÈME)
+    // ENDPOINT 5 : POST /api/reservation/ (CRÉATION)
     // ==========================================================================
 
     #[Route('', name: 'api_reservation_create', methods: ['POST'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function createReservation(Request $request): JsonResponse
     {
-        // 1. Lecture des données JSON
         $data = json_decode($request->getContent(), true);
-        
+
         if (json_last_error() !== JSON_ERROR_NONE) {
             return new JsonResponse(['error' => 'JSON invalide'], Response::HTTP_BAD_REQUEST);
         }
@@ -176,64 +175,46 @@ class ReservationController extends AbstractController
             return new JsonResponse(['error' => 'La date de fin doit être après le début'], Response::HTTP_BAD_REQUEST);
         }
 
-        // 2. Vérification de la voiture
         $voiture = $this->entityManager->getRepository(Voiture::class)->find($data['voiture_id']);
         if (!$voiture) {
             return new JsonResponse(['error' => 'Voiture introuvable'], Response::HTTP_NOT_FOUND);
         }
 
-        // 3. Vérification des conflits (Disponibilité)
         if (!$this->reservationService->isAvailable($voiture->getId(), $dateDebut, $dateFin)) {
             return new JsonResponse([
                 'error' => 'Ce véhicule n\'est pas disponible sur cette période.'
             ], Response::HTTP_CONFLICT);
         }
 
-        // 4. Calcul du prix total
         $interval = $dateDebut->diff($dateFin);
         $nbJours = $interval->days;
         if ($nbJours === 0) $nbJours = 1;
-        
+
         $prixTotal = $nbJours * $voiture->getPrixJour();
 
-        // ============================================================
-        // 🔧 CORRECTION CRUCIALE ICI (Récupération robuste de l'utilisateur)
-        // ============================================================
-        
-        // A. On récupère l'utilisateur connecté via le token JWT
         $userConnecte = $this->getUser();
-        
+
         if (!$userConnecte) {
             return new JsonResponse(['error' => 'Utilisateur non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
-        // B. On extrait son ID
         $idUtilisateur = $userConnecte->getId();
 
-        // C. On RECHARGE l'entité Utilisateur proprement depuis la base de données
-        // Cela évite les erreurs de type "Proxy" ou incompatibilité de classe
         /** @var \App\Entity\Utilisateur $utilisateur */
         $utilisateur = $this->entityManager->getRepository(Utilisateur::class)->find($idUtilisateur);
 
         if (!$utilisateur) {
             return new JsonResponse(['error' => 'Erreur système: Utilisateur introuvable en base'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-        // ============================================================
-        // FIN DE LA CORRECTION
-        // ============================================================
 
-        // 5. Création de l'objet Réservation
         $reservation = new Reservation();
         $reservation->setDateDebut($dateDebut);
         $reservation->setDateFin($dateFin);
         $reservation->setStatut('en_attente');
         $reservation->setPrixTotal($prixTotal);
         $reservation->setVoiture($voiture);
-        
-        // On assigne l'utilisateur rechargé proprement
         $reservation->setUtilisateur($utilisateur);
 
-        // 6. Sauvegarde en base de données
         try {
             $this->entityManager->persist($reservation);
             $this->entityManager->flush();
@@ -250,11 +231,47 @@ class ReservationController extends AbstractController
             ], Response::HTTP_CREATED);
 
         } catch (\Exception $e) {
-            // En cas d'erreur SQL inattendue, on renvoie le message exact pour déboguer
             return new JsonResponse([
                 'error' => 'Erreur lors de l\'enregistrement',
                 'details' => $e->getMessage()
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // ==========================================================================
+    // ENDPOINT 6 : PUT /api/reservation/{id}/cancel (CLIENT - annuler sa propre réservation)
+    // ==========================================================================
+
+    #[Route('/{id}/cancel', name: 'api_reservation_cancel', methods: ['PUT'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function cancelMyReservation(int $id): JsonResponse
+    {
+        /** @var \App\Entity\Utilisateur $user */
+        $user = $this->getUser();
+
+        $reservation = $this->reservationRepository->find($id);
+
+        if (!$reservation) {
+            return new JsonResponse(['error' => 'Réservation introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Vérifier que la réservation appartient bien à l'utilisateur connecté
+        if ($reservation->getUtilisateur()?->getId() !== $user->getId()) {
+            return new JsonResponse(['error' => 'Accès refusé'], Response::HTTP_FORBIDDEN);
+        }
+
+        // On ne peut pas annuler une réservation déjà annulée
+        if ($reservation->getStatut() === 'annulee') {
+            return new JsonResponse(['error' => 'Cette réservation est déjà annulée'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $reservation->setStatut('annulee');
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Réservation annulée avec succès',
+            'nouveau_statut' => $reservation->getStatut()
+        ], Response::HTTP_OK);
     }
 }
