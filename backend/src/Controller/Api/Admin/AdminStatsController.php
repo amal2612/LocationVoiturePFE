@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\Admin;
 
 // On importe les "Repositories" : ce sont nos outils pour LIRE la base de données
 use App\Repository\ReservationRepository;

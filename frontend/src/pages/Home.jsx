@@ -13,7 +13,7 @@ const Home = () => {
 
     const chargerVoitures = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/voitures');
+            const response = await axios.get('https://locationvoitureamal.alwaysdata.net/api/voitures');
             setVoitures((response.data['member'] || response.data['hydra:member'] || response.data).slice(0, 3));
         } catch (error) {
             console.error('Erreur API:', error);
@@ -113,7 +113,7 @@ const Home = () => {
                                 <div className="h-56 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
                                     {voiture.image ? (
                                         <img 
-                                            src={`http://127.0.0.1:8000${voiture.image}`} 
+                                            src={`https://locationvoitureamal.alwaysdata.net${voiture.image}`} 
                                             alt={voiture.marque} 
                                             className="w-full h-full object-cover"
                                         />

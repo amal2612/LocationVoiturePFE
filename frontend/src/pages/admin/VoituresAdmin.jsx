@@ -21,7 +21,7 @@ const VoituresAdmin = () => {
     });
 
     // URL de base pour les images (backend Symfony)
-    const IMAGE_BASE_URL = 'http://127.0.0.1:8000'; //✅ hna fin kan mochkil mabanoch tsawr 3ndi
+    const IMAGE_BASE_URL = 'https://locationvoitureamal.alwaysdata.net'; //✅ hna fin kan mochkil mabanoch tsawr 3ndi
 
     useEffect(() => {
         fetchVoitures();

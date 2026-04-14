@@ -52,7 +52,7 @@ const Voitures = () => {
     const chargerVoitures = async () => {
         try {
             // Appel GET vers l'API Symfony
-            const response = await axios.get('http://127.0.0.1:8000/api/voitures');
+            const response = await axios.get('https://locationvoitureamal.alwaysdata.net/api/voitures');
             console.log('✅ Réponse API Voitures:', response.data);
             
             // Gestion de la structure de réponse (API Platform renvoie souvent dans 'hydra:member' ou 'member')
@@ -274,7 +274,7 @@ const Voitures = () => {
                                             <div className="h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
                                                 {voiture.image ? (
                                                     <img 
-                                                        src={`http://127.0.0.1:8000${voiture.image}`} 
+                                                        src={`https://locationvoitureamal.alwaysdata.net${voiture.image}`} 
                                                         alt={`${voiture.marque} ${voiture.modele}`}
                                                         className="w-full h-full object-cover"
                                                     />

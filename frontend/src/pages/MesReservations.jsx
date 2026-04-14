@@ -87,7 +87,7 @@ const MesReservations = () => {
                                     {/* Image + Badge */}
                                     <div className="relative">
                                         <img
-                                            src={`http://127.0.0.1:8000${res.voiture?.image}`}
+                                            src={`https://locationvoitureamal.alwaysdata.net${res.voiture?.image}`}
                                             alt={`${res.voiture?.marque} ${res.voiture?.modele}`}
                                             className="w-full h-44 object-cover"
                                             onError={(e) => {

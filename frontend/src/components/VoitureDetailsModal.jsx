@@ -62,7 +62,7 @@ const VoitureDetailsModal = ({ voiture, onClose, user }) => {
                 <div className="relative h-48 bg-gray-100">
                     {voiture.image ? (
                         <img 
-                            src={`http://127.0.0.1:8000${voiture.image}`} 
+                            src={`https://locationvoitureamal.alwaysdata.net${voiture.image}`} 
                             alt={voiture.modele}
                             className="w-full h-full object-cover"
                         />
